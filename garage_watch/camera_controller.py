@@ -61,13 +61,13 @@ class CameraController(object):
         # transitions happening when door closes while recording or preparing
         self.machine.add_transition(trigger='door_closed', source='record', dest='on_hold')
         self.machine.add_transition(trigger='door_closed', source='prepare', dest='on_hold',
-                                    before=['notify_preparation_cancelled'])
+                                    before=['_log_preparation_cancelled'])
 
         # transitions for cancellation requested
         self.machine.add_transition(trigger='cancel_requested', source='prepare', dest='on_hold',
-                                    before=['notify_preparation_cancelled'])
+                                    before=['_log_preparation_cancelled'])
         self.machine.add_transition(trigger='cancel_requested', source='record', dest='on_hold',
-                                    before=['notify_record_cancelled'])
+                                    before=['_log_record_cancelled'])
 
         # not documented in transitions API but it is possible to add
         # a prepare callback when an event is triggered on a state accepting it
@@ -80,25 +80,25 @@ class CameraController(object):
         """
         Callback when door_open event happens in a valid state
         """
-        logger.info("Door openened", event='door_open')
+        logger.info("Door openened", extra=dict(event='door_open'))
 
     def on_event_door_closed(self):
         """
         Callback when door_closed event happens in a valid state
         """
-        logger.info("Door closed", event='door_closed')
+        logger.info("Door closed", extra=dict(event='door_closed'))
 
     def on_event_cancel_requested(self):
         """
         Callback when cancel_requested event happens in a valid state
         """
-        logger.info("Preparing to record completed", event='record_prepare_end')
+        logger.info("Cancel requested", extra=dict(event='cancel_requested'))
 
     def on_event_prepare_finished(self):
         """
         Callback when prepare_finished event happens in a valid state
         """
-        logger.info("Preparations finished", event='prepare_finished')
+        logger.info("Preparations finished", extra=dict(event='prepare_finished'))
 
     def on_enter_prepare(self):
         """
@@ -108,7 +108,7 @@ class CameraController(object):
         for some time until delay is finally open or perform any other
         checks
         """
-        logger.info("Preparing to record", event='record_prepare_start')
+        logger.info("Preparing to record", extra=dict(event='record_prepare_start'))
         self.prepare_recording()
 
     def on_enter_record(self):
@@ -117,7 +117,7 @@ class CameraController(object):
         the abstract method `start_recording` to start the recording of
         video
         """
-        logger.info("Recording started", event='record_start')
+        logger.info("Recording started", extra=dict(event='record_start'))
         self.start_recording()
 
     def on_exit_record(self):
@@ -126,7 +126,7 @@ class CameraController(object):
         the abstract method `stop_recording` to stop the recording of
         video
         """
-        logger.info("Recording finished", event='record_end')
+        logger.info("Recording finished", extra=dict(event='record_end'))
         self.stop_recording()
 
     def prepare_recording(self):
@@ -153,10 +153,10 @@ class CameraController(object):
         """
         Logs that preparations for recording have been cancelled
         """
-        logger.info("Preparations for recording cancelled", event='record_prepare_cancel')
+        logger.info("Preparations for recording cancelled", extra=dict(event='record_prepare_cancel'))
 
     def _log_record_cancelled(self):
         """
         Logs that recording recording has been cancelled
         """
-        logger.info("Recording cancelled", event='record_cancel')
+        logger.info("Recording cancelled", extra=dict(event='record_cancel'))
