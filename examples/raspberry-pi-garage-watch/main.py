@@ -27,6 +27,7 @@ from twisted.internet import reactor
 from garage_watch_rpi.camera_controller import GarageCameraController
 from garage_watch_rpi.sensor_control import SensorControl
 from garage_watch_rpi.parking_controller_led import LEDParkingController
+from garage_watch_rpi.clock_controller import ClockController
 
 # logger for the script
 logger = logging.getLogger(__name__)
@@ -161,6 +162,9 @@ def main():
     sc.add_event_handler('door_closed', door_close_handler)
     sc.add_event_handler('door_open', door_open_handler)
     sc.add_event_handler('override_button_pressed', override_button_handler)
+
+    # clock with PIR sensor in pin 22 and led in 0x71
+    cc = ClockController(22, 0x71)
     
     sc.start()
     
