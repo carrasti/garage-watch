@@ -20,12 +20,15 @@ def _periodic_check_door(instance):
             elif data_byte == 0x02:
                 instance._send_event('door_closed')
             elif data_byte == 0x03:
-                instance._send_event('cancel_requested')
+                instance._send_event('override_button_pressed')
 
         # check parking mode
         parking_status = bus_data[5]
-            
-        if parking_status != 0x00 or instance.parking_status != 0x00:
+        is_valid_parking_status = 0x00 <= parking_status <= 0x09
+        
+        if is_valid_parking_status and (
+                parking_status != 0x00 or
+                instance.parking_status != 0x00):
             instance.parking_mode = (parking_status == 0x00)
             instance.parking_distance[0] = bus_data[6]
             instance.parking_distance[1] = bus_data[7]
