@@ -25,8 +25,8 @@ def _update_time(instance):
             instance.last_time = now
             instance.seven_segment.print_number_str("{:2}{:02}".format(now.hour, now.minute))
             instance.seven_segment.write_display()
-    except:
-        logger.exception()
+    except Exception as exc:
+        logger.exception(exc)
         
 
 class ClockController(CameraController):
