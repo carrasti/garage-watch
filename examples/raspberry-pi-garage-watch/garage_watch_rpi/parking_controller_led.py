@@ -61,10 +61,10 @@ class LEDParkingController(ParkingController):
 	YELLOW_ARROW = Icon8x8(GRAPHICS['m_arrow'], Y).matrix
 	GREEN_ARROW = Icon8x8(GRAPHICS['m_arrow'], G).matrix
 	RED_ARROW = Icon8x8(GRAPHICS['m_arrow'], R).matrix
-	RED_ARROW_180 = Icon8x8(GRAPHICS['m_arrow'], R).rotate(180).matrix
-	YELLOW_ARROW_180 = Icon8x8(GRAPHICS['m_arrow'], Y).rotate(180).matrix
+	RED_ARROW_180 = Icon8x8(GRAPHICS['m_arrow'], R).rotate(90).matrix
+	YELLOW_ARROW_180 = Icon8x8(GRAPHICS['m_arrow'], Y).rotate(90).matrix
 	STOP = Icon8x8(GRAPHICS['b_stop']).matrix
-	GREEN_SMILEY = Icon8x8(GRAPHICS['m_smiley'], G).matrix
+	GREEN_SMILEY = Icon8x8(GRAPHICS['m_smiley'], G).rotate(90).matrix
 	RED_HEART = Icon8x8(GRAPHICS['m_heart'], R).matrix
 	RED_FROWN = Icon8x8(GRAPHICS['m_frown'], R).matrix
 	
