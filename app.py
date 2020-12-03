@@ -9,10 +9,11 @@ from jwcrypto.jwt import JWT
 app = Flask(__name__)
 
 
-_JWKSET_CONFIG = os.environ['JWKSET']
+_JWKSET_PATH = os.environ['JWKSET_PATH']
 _FILE_UPLOAD_PATH = os.environ['FILE_UPLOAD_PATH']
 
-_JWKSET = JWKSet.import_keyset(_JWKSET_CONFIG)
+with open(_JWKSET_PATH, 'rb') as f:
+    _JWKSET = JWKSet.import_keyset(f.read())
 
 
 class AuthenticationException(Exception):
