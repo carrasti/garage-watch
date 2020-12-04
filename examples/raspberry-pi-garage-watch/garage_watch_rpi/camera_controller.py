@@ -27,9 +27,10 @@ class GarageCameraController(CameraController):
     snapshot_dir = ''
     video_dir = ''
 
-    upload_host = ''
-    upload_host_username = ''
-    upload_dest_filename = ''
+    upload_url = ''
+    upload_auth_jwk_path = ''
+    upload_auth_jwk = None
+
     pushbullet_secret = None
     last_video_filename = None
 
@@ -142,37 +143,41 @@ class GarageCameraController(CameraController):
     def upload_picture(self, filepath):
         """
         Upload the file on the given path to the server
-        via scp
+        via HTTP post
 
-        Uses class configuration to determine the server and
-        user to connect to. Relies on user public key installed
-        on the target server for authentication
+        Uses class configuration to determine the url and key to sign
+        Authorization Bearer token with JWT
         """
-        from paramiko import SSHClient
-        from scp import SCPClient
+        from jwcrypto.jwt import JWT
+        from jwcrypto.jwk import JWK
+
 
         # skip if improperly configured    
-        if not self.upload_host or not self.upload_dest_filename:
+        if not self.upload_url or not self.upload_auth_jwk_path:
             return
 
+        if not self.upload_auth_jwk:
+            with open(self.upload_auth_jwk_path, 'rb') as f:
+                self.upload_auth_jwk = JWK.from_json(f.read())
+        
         try:
-            # configure ssh transport
-            ssh = SSHClient()
-            ssh.load_system_host_keys()
-            connect_kwargs = {}
-            if self.upload_host_username:
-                connect_kwargs['username'] = self.upload_host_username
-            ssh.connect(self.upload_host, **connect_kwargs)
+            auth_token = JWT(header={'alg': 'EdDSA', 'kid': self.upload_auth_jwk.key_id}, default_claims={'iat':None, 'exp': None})
+            auth_token.validity=300
+            auth_token.claims={}
+            auth_token.make_signed_token(self.upload_auth_jwk)
 
-            # Configure scp and perform upload
-            scp = SCPClient(ssh.get_transport())
-            scp.put(filepath, self.upload_dest_filename)
+            auth_header = 'Bearer {}'.format(auth_token.serialize())
+            response = requests.post(
+                self.upload_url, 
+                files={'file': open(filepath, 'rb')},
+                headers={
+                    'Authorization': auth_header
+                }
+            )
+            if not response.ok:
+                logger.error("Error uploading snapshot. Status code {}".format(response.status_code))
             
-            # clean up
-            scp.close()
-            ssh.close()
-
             # log success
             logger.info("Snapshot uploaded")
-        except Exception:
-            logger.exception("Error uploading snapshot")
+        except Exception as exc:
+            logger.exception("Error uploading snapshot.")

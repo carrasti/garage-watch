@@ -57,22 +57,17 @@ def main():
         help="the base directory to store logs")
 
     parser.add_argument(
-        "--upload-host", 
+        "--upload-url", 
         type=str, 
         default='',
-        help="the host to upload the file to via scp")
+        help="the url to send the file to")
     
     parser.add_argument(
-        "--upload-host-username", 
+        "--upload-auth-jwk-path", 
         type=str, 
         default='',
-        help="the username in the host host to upload the file to via scp")
+        help="the path to serialized jwk for jwt authentication")
 
-    parser.add_argument(
-        "--upload-dest-filename", 
-        type=str, 
-        default='',
-        help="the full path of the file destination in target host")
 
     args = parser.parse_args()
 
@@ -105,18 +100,19 @@ def main():
         logger.warning(
             "PUSHBULLET_SECRET environment variable not set. Messages will not be sent")
 
-    if not args.upload_host or not args.upload_dest_filename:
+
+    if not args.upload_url or not args.upload_auth_jwk_path:
+        
         logger.warning(
-            "Upload via SCP improperly confgured. Snapshots will not be uploaded")
+            "Upload improperly configured. Snapshots will not be uploaded")
 
     # create the camera controller instance
     cam_control = GarageCameraController()
     # configure output dirs
     cam_control.snapshot_dir = args.snapshot_dir
     cam_control.video_dir = args.video_dir
-    cam_control.upload_host = args.upload_host
-    cam_control.upload_host_username = args.upload_host_username
-    cam_control.upload_dest_filename = args.upload_dest_filename
+    cam_control.upload_url = args.upload_url
+    cam_control.upload_auth_jwk_path = args.upload_auth_jwk_path
     cam_control.pushbullet_secret = PUSHBULLET_SECRET
 
     # configure periodically taking a picture

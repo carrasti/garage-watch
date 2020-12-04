@@ -3,10 +3,9 @@ RPI.GPIO  # backend for gpiozero
 picamera
 requests
 twisted
-scp
-paramiko # needed by scp
 Adafruit-LED-Backpack
 smbus2
 transitions
 twisted
 pillow
+requests
