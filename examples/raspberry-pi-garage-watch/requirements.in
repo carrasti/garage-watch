@@ -9,3 +9,4 @@ transitions
 twisted
 pillow
 requests
+twisted-mqtt
