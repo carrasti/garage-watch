@@ -1,3 +1,4 @@
+from io import BytesIO
 import os
 import logging
 import requests
@@ -8,6 +9,9 @@ from picamera import PiCamera
 from twisted.internet import reactor
 
 from garage_watch import CameraController
+
+from jwcrypto.jwt import JWT
+from jwcrypto.jwk import JWK
 
 # logger for the script
 logger = logging.getLogger(__name__)
@@ -101,10 +105,32 @@ class GarageCameraController(CameraController):
             self.scheduledPrepare = None
 
     def take_picture(self):
+        now = datetime.now()
         try:
+            picture_stream = BytesIO()
+            # capture the snapshot
+            self.camera.annotate_text = '({}) {}'.format(
+                self.state, now.strftime('%Y-%m-%d %H:%M')
+            )
+            
+            self.camera.capture(
+                picture_stream,
+                format='jpeg',
+                quality=82,
+                use_video_port=(True if self.state == 'record' else False))
+            self.camera.annotate_text = ''
+        except Exception :
+            logger.exception("Error taking snapshot")
+        else:
+            logger.info("Snapshot taken")
+            picture_stream.seek(0)
+            return picture_stream
+
+    def save_picture(self, picture_stream):
+        try:
+            picture_stream.seek(0)
             now = datetime.now()
             # get directory for today and create if it doesn't exist
-            
             todaydir = os.path.join(
                 now.strftime('%Y'), now.strftime('%m'), now.strftime('%d'))
             destdir = os.path.join(self.snapshot_dir, todaydir)
@@ -117,30 +143,22 @@ class GarageCameraController(CameraController):
             filepath = os.path.join(
                 destdir, filename)
             
-            # capture the snapshot
-            self.camera.annotate_text = '({}) {}'.format(
-                self.state, now.strftime('%Y-%m-%d %H:%M')
-            )
-            self.camera.capture(
-                filepath,
-                format='jpeg',
-                quality=82,
-                use_video_port=(True if self.state == 'record' else False))
-            self.camera.annotate_text = ''
-            logger.info("Snapshot taken")
-            
+            with open(filepath, 'wb') as f:
+                f.write(picture_stream.read())
+
             # create a simbolyc link in the directory
             symlink_path = os.path.join(self.snapshot_dir, 'latest_snapshot.jpg')
             if os.path.lexists(symlink_path):
                 os.unlink(symlink_path)
             os.symlink(os.path.join(todaydir, filename), symlink_path)
+        except Exception:
+            logger.exception("Error saving snapshot")
+        else:
+            logger.info("Snapshot saved to disk")
+        finally:
+            picture_stream.seek(0)
 
-            self.upload_picture(filepath)
-            
-        except Exception :
-            logger.exception("Error taking snapshot")
-
-    def upload_picture(self, filepath):
+    def upload_picture(self, picture_stream):
         """
         Upload the file on the given path to the server
         via HTTP post
@@ -148,10 +166,6 @@ class GarageCameraController(CameraController):
         Uses class configuration to determine the url and key to sign
         Authorization Bearer token with JWT
         """
-        from jwcrypto.jwt import JWT
-        from jwcrypto.jwk import JWK
-
-
         # skip if improperly configured    
         if not self.upload_url or not self.upload_auth_jwk_path:
             return
@@ -161,6 +175,7 @@ class GarageCameraController(CameraController):
                 self.upload_auth_jwk = JWK.from_json(f.read())
         
         try:
+            picture_stream.seek(0)
             auth_token = JWT(header={'alg': 'EdDSA', 'kid': self.upload_auth_jwk.key_id}, default_claims={'iat':None, 'exp': None})
             auth_token.validity=300
             auth_token.claims={}
@@ -169,7 +184,7 @@ class GarageCameraController(CameraController):
             auth_header = 'Bearer {}'.format(auth_token.serialize())
             response = requests.post(
                 self.upload_url, 
-                files={'file': open(filepath, 'rb')},
+                files={'file': picture_stream},
                 headers={
                     'Authorization': auth_header
                 }
@@ -177,7 +192,10 @@ class GarageCameraController(CameraController):
             if not response.ok:
                 logger.error("Error uploading snapshot. Status code {}".format(response.status_code))
             
-            # log success
-            logger.info("Snapshot uploaded")
         except Exception as exc:
             logger.exception("Error uploading snapshot.")
+        else:
+            # log success
+            logger.info("Snapshot uploaded")
+        finally:
+            picture_stream.seek(0)

@@ -29,6 +29,8 @@ from garage_watch_rpi.sensor_control import SensorControl
 from garage_watch_rpi.parking_controller_led import LEDParkingController
 from garage_watch_rpi.clock_controller import ClockController
 
+from garage_watch_rpi.mqtt_controller import MQTTService
+
 # logger for the script
 logger = logging.getLogger(__name__)
 
@@ -91,10 +93,13 @@ def main():
     # disable logging of transitions module
     logging.getLogger('transitions').setLevel(logging.ERROR)
     # disable logging of scp module
-    logging.getLogger('paramiko').setLevel(logging.ERROR)
-    # disable logging of scp module
     logging.getLogger('twisted').setLevel(logging.INFO)
-    
+
+    mqtt_service = MQTTService(reactor)
+    mqtt_service.startService()
+    # default value for door on connected
+    mqtt_service.whenConnected().addCallback(mqtt_service.report_door_closed)
+
     PUSHBULLET_SECRET = os.environ.get('PUSHBULLET_SECRET', None)
     if not PUSHBULLET_SECRET:
         logger.warning(
@@ -117,11 +122,12 @@ def main():
 
     # configure periodically taking a picture
     def periodic_take_picture():
-        cam_control.take_picture()
+        picture_stream = cam_control.take_picture()
+        cam_control.upload_picture(picture_stream)
+        cam_control.save_picture(picture_stream)
+
     lc = LoopingCall(periodic_take_picture)
     lc.start(60)
-    
-
     
     # define the matrix for parking
     parking_control = LEDParkingController(rotation=180, i2c_address=0x70)
@@ -144,9 +150,11 @@ def main():
 
     def door_open_handler(*args, **kwargs):
         cam_control.door_open()
+        mqtt_service.report_door_open()
 
     def door_close_handler(*args, **kwargs):
         cam_control.door_closed()
+        mqtt_service.report_door_closed()
         
     def override_button_handler(*args, **kwargs):
         cam_control.cancel_requested()
