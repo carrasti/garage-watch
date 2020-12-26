@@ -10,9 +10,13 @@ logger = logging.getLogger(__name__)
 def _periodic_check_door(instance):
     try:
         try:
-            bus_data = bus.read_i2c_block_data(instance.sensor_i2c_address, 0, 8)
+            bus_data = bus.read_i2c_block_data(instance.sensor_i2c_address, 0, 10)
         except OSError:
             return
+
+        # check door sensor (value 1 means open)
+        instance.door_sensor = (bus_data[8] == 0x01)
+        
         for data_byte in bus_data[0:5]:
             # check sensor events
             if data_byte == 0x01:
@@ -40,7 +44,7 @@ def _periodic_check_door(instance):
             # call the parking callbacks
             for fn, args, kwargs in instance.parking_event_callbacks:
                 fn(instance, *args, *kwargs)
-                
+        
     except:
         logger.exception("Error in _periodic_check_door")
         
@@ -62,6 +66,7 @@ class SensorControl(object):
         self.parking_status = 0
         self.parking_distance = [0, 0]
         self.parking_mode = False
+        self.door_sensor = False
         
     def start(self, interval=None, now=True):
         
@@ -73,6 +78,9 @@ class SensorControl(object):
         if self.lc and self.lc.running:
             self.lc.stop()
         
+
+    def is_door_open(self):
+        return self.door_sensor 
 
     def add_parking_data_update_callback(self, fn, *args, **kwargs):
         self.parking_event_callbacks.append((fn, args, kwargs))

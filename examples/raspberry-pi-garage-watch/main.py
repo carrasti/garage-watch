@@ -95,8 +95,6 @@ def main():
     # disable logging of scp module
     logging.getLogger('twisted').setLevel(logging.INFO)
 
-    door_is_open = False
-
     mqtt_service = MQTTService(reactor)
     mqtt_service.startService()
     # default value for door on connected
@@ -129,9 +127,10 @@ def main():
         cam_control.save_picture(picture_stream)
 
     def periodic_report_door_status():
-        if not mqtt_service.connected:
+        # report status of door open based on door sensor
+        if not mqtt_service.connected or not sc:
             return
-        if door_is_open:
+        if sc.is_door_open():
             mqtt_service.report_door_open()
         else:
             mqtt_service.report_door_closed()
@@ -163,7 +162,6 @@ def main():
 
     def door_open_handler(*args, **kwargs):
         cam_control.door_open()
-        door_is_open
         mqtt_service.report_door_open()
 
     def door_close_handler(*args, **kwargs):
