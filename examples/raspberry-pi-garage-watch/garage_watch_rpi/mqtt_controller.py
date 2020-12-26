@@ -31,7 +31,7 @@ class MQTTService(ClientService):
         factory    = MQTTFactory(profile=MQTTFactory.PUBLISHER)
         endpoint = clientFromString(reactor, BROKER)
         ClientService.__init__(self, endpoint, factory, retryPolicy=backoffPolicy())
-
+        self.connected = False
 
     def startService(self):
         _logger.info("starting MQTT Client Publisher Service")
@@ -59,6 +59,7 @@ class MQTTService(ClientService):
                BROKER, e)
         else:
             _logger.info("Connected to %s", BROKER)
+            self.connected = True
             self.publish_discovery()
 
 
@@ -68,6 +69,7 @@ class MQTTService(ClientService):
         and get a deferred for a new protocol object (next retry)
         '''
         _logger.debug(" >< Connection was lost ! ><, reason=%s", reason)
+        self.connected = False
         self.whenConnected().addCallback(self.connectToBroker)
 
 
@@ -78,7 +80,8 @@ class MQTTService(ClientService):
             "uniq_id": device_config['ids'] + "_GARAGE_DOOR_OPEN",
             "device_class": "garage_door",
             "state_topic": f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/state",
-            "device": device_config
+            "device": device_config,
+            "retain": True,
         }))
 
     def publish(self, topic, message):

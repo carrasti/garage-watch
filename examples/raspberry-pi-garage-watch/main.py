@@ -95,10 +95,12 @@ def main():
     # disable logging of scp module
     logging.getLogger('twisted').setLevel(logging.INFO)
 
+    door_is_open = False
+
     mqtt_service = MQTTService(reactor)
     mqtt_service.startService()
     # default value for door on connected
-    mqtt_service.whenConnected().addCallback(mqtt_service.report_door_closed)
+    mqtt_service.whenConnected().addCallback(lambda *args: mqtt_service.report_door_closed())
 
     PUSHBULLET_SECRET = os.environ.get('PUSHBULLET_SECRET', None)
     if not PUSHBULLET_SECRET:
@@ -126,7 +128,18 @@ def main():
         cam_control.upload_picture(picture_stream)
         cam_control.save_picture(picture_stream)
 
+    def periodic_report_door_status():
+        if not mqtt_service.connected:
+            return
+        if door_is_open:
+            mqtt_service.report_door_open()
+        else:
+            mqtt_service.report_door_closed()
+
     lc = LoopingCall(periodic_take_picture)
+    lc.start(60)
+    
+    lc = LoopingCall(periodic_report_door_status)
     lc.start(60)
     
     # define the matrix for parking
@@ -150,6 +163,7 @@ def main():
 
     def door_open_handler(*args, **kwargs):
         cam_control.door_open()
+        door_is_open
         mqtt_service.report_door_open()
 
     def door_close_handler(*args, **kwargs):
