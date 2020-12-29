@@ -14,16 +14,18 @@ def _periodic_check_door(instance):
         except OSError:
             return
 
-        # check door sensor (value 1 means open)
-        instance.door_sensor = (bus_data[8] == 0x01)
+
+        previous_door_state = instance.door_sensor
+        # check door sensor (value 0 means closed)
+        instance.door_sensor = SensorControl.DOOR_CLOSED if (bus_data[8] == 0x00) else SensorControl.DOOR_OPEN
         
+        # any change in the door sensor must be reported via event
+        if previous_door_state != instance.door_sensor:
+            instance._send_event('door_open' if instance.door_sensor is SensorControl.DOOR_OPEN else 'door_closed')
+
         for data_byte in bus_data[0:5]:
             # check sensor events
-            if data_byte == 0x01:
-                instance._send_event('door_open')
-            elif data_byte == 0x02:
-                instance._send_event('door_closed')
-            elif data_byte == 0x03:
+            if data_byte == 0x03:
                 instance._send_event('override_button_pressed')
 
         # check parking mode
@@ -58,6 +60,10 @@ class SensorControl(object):
 
     event_handlers = None
     parking_event_callbacks = None
+
+    DOOR_OPEN = True
+    DOOR_CLOSED = False
+
     def __init__(self, i2c_address):
         self.sensor_i2c_address = i2c_address
         self.lc = None
