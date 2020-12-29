@@ -19,7 +19,7 @@ import os
 import argparse
 
 
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -78,11 +78,12 @@ def main():
     if args.log_dir != 'console':
         # configure logging 
         # rotating file handler, 5 MB per file
-        rfh = RotatingFileHandler(
+        trfh = TimedRotatingFileHandler(
             os.path.join(args.log_dir, 'garage-camera.log'),
-            maxBytes=(5 * 2 ** 20)
+            when='midnight',
+            backupCount=14,
         )
-        logconfig_kwargs['handlers'] = [rfh]
+        logconfig_kwargs['handlers'] = [trfh]
 
     # set up logging to print to console
     logging.basicConfig(
