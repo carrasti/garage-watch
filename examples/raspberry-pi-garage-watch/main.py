@@ -87,7 +87,7 @@ def main():
 
     # set up logging to print to console
     logging.basicConfig(
-        format='[%(levelname)s][%(asctime)s] %(message)s', 
+        format='[%(levelname)s][%(asctime)s][%(name)s] %(message)s',
         level=logging.INFO,
         **logconfig_kwargs
     )

@@ -55,10 +55,9 @@ class MQTTService(ClientService):
         try:
             yield self.protocol.connect("TwistedMQTT-pub", keepalive=60)
         except Exception as e:
-            _logger.error("Connecting to %s raised %s", 
-               BROKER, e)
+            _logger.error("MQTT connecting to %s raised %s", BROKER, e)
         else:
-            _logger.info("Connected to %s", BROKER)
+            _logger.info("MQTT client connected to %s", BROKER)
             self.connected = True
             self.publish_discovery()
 
@@ -68,13 +67,12 @@ class MQTTService(ClientService):
         get notfied of disconnections
         and get a deferred for a new protocol object (next retry)
         '''
-        _logger.debug(" >< Connection was lost ! ><, reason=%s", reason)
+        _logger.info("Connection to mqtt broker was lost, reason=%s", reason)
         self.connected = False
         self.whenConnected().addCallback(self.connectToBroker)
 
 
     def publish_discovery(self):
-        _logger.info(f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/config")
         self.publish(f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/config", json.dumps({
             "name": "Garage Door Open",
             "uniq_id": device_config['ids'] + "_GARAGE_DOOR_OPEN",
@@ -86,21 +84,24 @@ class MQTTService(ClientService):
 
     def publish(self, topic, message):
         def _logFailure(failure):
-            _logger.info("reported %s", failure.getErrorMessage())
+            _logger.info("Failure publishing MQTT message %s", failure.getErrorMessage())
             return failure
 
-        def _logAll(*args):
-            _logger.info("all publihing complete args=%s",args)
+        #def _logAll(*args):
+        #    _logger.info("MQTT publihing complete. args=%s", args)
 
-        _logger.info(" >< Starting one round of publishing >< ")
+        #_logger.info("Publishing message ")
         d1 = self.protocol.publish(topic=topic, qos=0, message=message)
         d1.addErrback(_logFailure)
         dlist = DeferredList([d1], consumeErrors=True)
-        dlist.addCallback(_logAll)
+
+        #dlist.addCallback(_logAll)
         return dlist
 
     def report_door_open(self):
+        _logger.info('Reporting door open')
         self.publish(f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/state", "ON")
     
     def report_door_closed(self):
+        _logger.info('Reporting door closed')
         self.publish(f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/state", "OFF")
