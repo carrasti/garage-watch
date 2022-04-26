@@ -10,3 +10,4 @@ twisted
 pillow
 requests
 twisted-mqtt
+jwcrypto

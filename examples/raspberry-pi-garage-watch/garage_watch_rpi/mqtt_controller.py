@@ -79,10 +79,9 @@ class MQTTService(ClientService):
             "device_class": "garage_door",
             "state_topic": f"homeassistant/binary_sensor/{device_config['ids']}_GARAGE_DOOR_OPEN/state",
             "device": device_config,
-            "retain": True,
-        }))
+        }), retain=True)
 
-    def publish(self, topic, message):
+    def publish(self, topic, message, retain=False):
         def _logFailure(failure):
             _logger.info("Failure publishing MQTT message %s", failure.getErrorMessage())
             return failure
@@ -91,7 +90,7 @@ class MQTTService(ClientService):
         #    _logger.info("MQTT publihing complete. args=%s", args)
 
         #_logger.info("Publishing message ")
-        d1 = self.protocol.publish(topic=topic, qos=0, message=message)
+        d1 = self.protocol.publish(topic=topic, qos=0, message=message, retain=retain)
         d1.addErrback(_logFailure)
         dlist = DeferredList([d1], consumeErrors=True)
 

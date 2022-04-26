@@ -43,33 +43,45 @@ class GarageCameraController(CameraController):
         Kick off recording with the raspberry camera, it will
         use a video with filename the current timestamp
         """
-        now = datetime.now()
-        # get directory for today and create if it doesn't exist
-        todaydir = os.path.join(
-            self.video_dir, now.strftime('%Y'), now.strftime('%m'), now.strftime('%d'))
-        if not os.path.exists(todaydir):
-            os.makedirs(todaydir)
+        try:
+            now = datetime.now()
+            # get directory for today and create if it doesn't exist
+            todaydir = os.path.join(
+                self.video_dir, now.strftime('%Y'), now.strftime('%m'), now.strftime('%d'))
+            if not os.path.exists(todaydir):
+                os.makedirs(todaydir)
 
-        # generate the filename
-        filepath = os.path.join(
-            todaydir, now.strftime('%H-%M-%S.h264'))
+            # generate the filename
+            filepath = os.path.join(
+                todaydir, now.strftime('%H-%M-%S.h264'))
             
-        self.camera.framerate = 5
-        self.camera.start_recording(filepath, quality=22)
-        self.last_video_filename = filepath
+            self.camera.framerate = 5
+            self.camera.start_recording(filepath, quality=22)
+            self.last_video_filename = filepath
+
+        except Exception:
+            logger.exception("Error starting recording")
+        else:
+            logger.info("Started recording to disk")
 
     def stop_recording(self):
         """
         Kick off recording with the raspberry camera, it will
         use a video with filename the current timestamp
         """
-        self.camera.stop_recording()
+        try:
+            self.camera.stop_recording()
         
-        # create a simbolyc link in the directory
-        symlink_path = os.path.join(self.video_dir, 'latest_recording.h264')
-        if os.path.lexists(symlink_path):
-            os.unlink(symlink_path)
-        os.symlink(self.last_video_filename, symlink_path)
+            # create a simbolyc link in the directory
+            symlink_path = os.path.join(self.video_dir, 'latest_recording.h264')
+            if os.path.lexists(symlink_path):
+                os.unlink(symlink_path)
+            os.symlink(self.last_video_filename, symlink_path)
+
+        except Exception:
+            logger.exception("Error stopping recording snapshot")
+        else:
+            logger.info("Stopping recording to disk")
 
     def prepare_recording(self):
         """

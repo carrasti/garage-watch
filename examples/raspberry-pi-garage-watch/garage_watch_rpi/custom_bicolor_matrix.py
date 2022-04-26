@@ -1,5 +1,11 @@
 from Adafruit_LED_Backpack import BicolorMatrix8x8
 
+import logging
+
+# logger for the script
+_logger = logging.getLogger(__name__)
+
+
 class CustomBicolorMatrix8x8(BicolorMatrix8x8.BicolorMatrix8x8):
 	"""
 	Extend the BiColorMatrix with extra method for printing a matrix
@@ -38,4 +44,8 @@ class CustomBicolorMatrix8x8(BicolorMatrix8x8.BicolorMatrix8x8):
 		for y, row in enumerate(m):
 			for x, val in enumerate(row):
 				self.set_pixel(x, y, val)
-		self.write_display()
+		try:
+			self.write_display()
+		except:
+			_logger.exception('Error writing to display')
+
