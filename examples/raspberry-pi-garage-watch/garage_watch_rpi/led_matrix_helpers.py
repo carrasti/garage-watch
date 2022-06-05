@@ -29,7 +29,7 @@ class Icon8x8(object):
 			return 0
 			
 		if self.color_type == Icon8x8.COLOR_TYPE_MONOCHROME and character == '1':
-			return color if color else 1;
+			return color if color else 1
 		elif character == 'R':
 			return R
 		elif character == 'G':

@@ -1,4 +1,4 @@
-from Adafruit_LED_Backpack import BicolorMatrix8x8
+from adafruit_ht16k33 import matrix
 
 import logging
 
@@ -6,7 +6,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class CustomBicolorMatrix8x8(BicolorMatrix8x8.BicolorMatrix8x8):
+class CustomBicolorMatrix8x8(matrix.Matrix8x8x2):
 	"""
 	Extend the BiColorMatrix with extra method for printing a matrix
 	and enable rotation
@@ -39,13 +39,13 @@ class CustomBicolorMatrix8x8(BicolorMatrix8x8.BicolorMatrix8x8):
 		self.rotation = rotation
 		
 	def set_matrix_image(self, matrix):
-		self.clear()
+		self.fill(0)
 		m = self.rotate_matrix(matrix, self.rotation)
 		for y, row in enumerate(m):
 			for x, val in enumerate(row):
-				self.set_pixel(x, y, val)
+				self[x, y] = val
 		try:
-			self.write_display()
+			self.show()
 		except:
 			_logger.exception('Error writing to display')
 

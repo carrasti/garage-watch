@@ -5,7 +5,9 @@ import requests
 from datetime import datetime
 
 from gpiozero import MotionSensor
-from Adafruit_LED_Backpack import SevenSegment
+from adafruit_ht16k33 import segments
+import board
+import busio
 
 from twisted.internet.task import LoopingCall
 
@@ -14,6 +16,8 @@ from garage_watch import CameraController
 # logger for the script
 logger = logging.getLogger(__name__)
 
+# Create the I2C interface.
+i2c = busio.I2C(board.SCL, board.SDA)
 
 def _update_time(instance):
     """
@@ -23,8 +27,8 @@ def _update_time(instance):
         now = datetime.now()
         if now != instance.last_time:
             instance.last_time = now
-            instance.seven_segment.print_number_str("{:2}{:02}".format(now.hour, now.minute))
-            instance.seven_segment.write_display()
+            instance.seven_segment.print("{:2}{:02}".format(now.hour, now.minute))
+            instance.seven_segment.show()
     except Exception as exc:
         logger.exception(exc)
         
@@ -37,9 +41,10 @@ class ClockController(CameraController):
     # create the Pi camera instance and configure it
     def __init__(self, sensor_pin, led_i2c_address):
         self.pir_sensor = MotionSensor(sensor_pin)
-        self.seven_segment = SevenSegment.SevenSegment(
+        self.seven_segment = segments.Seg7x4(
+            i2c,
             address=led_i2c_address)
-        self.seven_segment.set_brightness(5)
+        self.seven_segment.brightness = 0.5
         self.last_time = None
         self.lc = None  # LoopingCall
 
@@ -64,7 +69,7 @@ class ClockController(CameraController):
         """
 
         logger.info("Motion detected, starting clock")
-        self.seven_segment.set_colon(True)
+        self.seven_segment.colon = True
         
         if self.lc and self.lc.running:
             self.lc.stop()
@@ -78,6 +83,7 @@ class ClockController(CameraController):
         logger.info("No motion, stopping clock")
         if self.lc and self.lc.running:
             self.lc.stop()
-            
-        self.seven_segment.clear()
-        self.seven_segment.write_display()
+
+        self.seven_segment.colon = False
+        self.seven_segment.fill(0)
+        self.seven_segment.show()

@@ -3,8 +3,10 @@ RPI.GPIO  # backend for gpiozero
 picamera
 requests
 twisted
-Adafruit-LED-Backpack
+adafruit-blinka
+adafruit-circuitpython-ht16k33
 smbus2
+i2c-tools
 transitions
 twisted
 pillow

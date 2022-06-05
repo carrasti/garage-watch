@@ -2,7 +2,13 @@ from .custom_bicolor_matrix import CustomBicolorMatrix8x8
 from .led_matrix_helpers import Icon8x8, R, G, K, Y
 from .parking_controller import ParkingController
 
-from Adafruit_LED_Backpack import SevenSegment
+from adafruit_ht16k33 import segments
+
+import board
+import busio
+
+i2c = busio.I2C(board.SCL, board.SDA)
+
 
 GRAPHICS = {
 	'm_arrow': (
@@ -82,26 +88,24 @@ class LEDParkingController(ParkingController):
 			display_kwargs['busnum'] = i2c_busnum
 			
 		# Create display instance on default I2C address (0x70) and bus number.
-		self.display = CustomBicolorMatrix8x8(**display_kwargs)
+		self.display = CustomBicolorMatrix8x8(i2c, **display_kwargs)
 
 		# Initialize the display. Must be called once before using the display.
-		self.display.begin()
-		self.display.clear()
-		self.display.write_display()
+		self.display.fill(self.display.LED_OFF)
+		self.display.show()
 
-		self.seven_segment = SevenSegment.SevenSegment(address=0x71)
-		self.seven_segment.begin()
-		self.seven_segment.write_display()
+		self.seven_segment = segments.Seg7x4(i2c, address=0x71)
+		self.seven_segment.show()
 
 
 	def write_amount(self, value):
 		assert isinstance(value, int)
 		if not value:
-			self.seven_segment.clear()
+			self.seven_segment.fill(0)
 		else:
 			self.seven_segment.print_number_str("{}".format(value))
 		
-		self.seven_segment.write_display()
+		self.seven_segment.fill(0)
 
 	def write_amounts(self, value1, value2):
 		if value1 > 99:
@@ -110,12 +114,12 @@ class LEDParkingController(ParkingController):
 			value2 = '-'
 			
 		self.seven_segment.print_number_str("{:2}{:2}".format(value1, value2))
-		self.seven_segment.write_display()
+		self.seven_segment.show()
 		
 	def on_enter_hold(self):
 		self.display.clear()
-		self.seven_segment.clear()
-		self.display.write_display()
+		self.seven_segment.fill(0)
+		self.display.show()
 		
 	def on_enter_parking_start(self):
 		self.display.set_matrix_image(self.GREEN_ARROW)
