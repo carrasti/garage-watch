@@ -11,11 +11,12 @@ import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-_logger = logging.getLogger('garagewatch')
+_logger = logging.getLogger("garagewatch")
 
 MQTT_HOST = "hass.local"
 BUTTON_TOPIC = "zigbee2mqtt/0x0c4314fffea576f9"
 PERIODIC_SNAPSHOT_DELAY = 60
+
 
 async def advanced_example():
     # We 💛 context managers. Let's create a stack to help
@@ -52,24 +53,29 @@ async def advanced_example():
         # errors)
         await asyncio.gather(*tasks)
 
+
 async def process_mqtt_messages(messages):
     async for message in messages:
         json_payload = json.loads(message.payload)
-        if message.topic == BUTTON_TOPIC and json_payload.get('action') == "on":
+        if message.topic == BUTTON_TOPIC and json_payload.get("action") == "on":
             # get snapshot without waiting for results
             _logger.info(f"Button pressed (topic %s)", message.topic)
             asyncio.ensure_future(get_snapshot())
+
 
 async def get_snapshot():
     async with aiohttp.ClientSession() as session:
         timestamp_filename = datetime.now().strftime("%Y%m%d%H%M%S")
         _logger.info("Taking snapshot %s", timestamp_filename)
-        async with session.get('http://garage.local:8081/?action=snapshot') as resp:
+        async with session.get("http://garage.local:8081/?action=snapshot") as resp:
             if resp.status == 200:
-                
-                async with aiofile.async_open(f"/home/arrastia/Desktop/snapshot_{timestamp_filename}.jpg", "wb") as f:
+
+                async with aiofile.async_open(
+                    f"/home/arrastia/Desktop/snapshot_{timestamp_filename}.jpg", "wb"
+                ) as f:
                     await f.write(await resp.read())
                     _logger.info("Saved snapshot %s", timestamp_filename)
+
 
 async def cancel_tasks(tasks):
     for task in tasks:
@@ -81,13 +87,14 @@ async def cancel_tasks(tasks):
         except asyncio.CancelledError:
             pass
 
+
 async def periodic_snapshot():
 
     while True:
         # do not wait or care about results
         asyncio.ensure_future(get_snapshot())
         await asyncio.sleep(PERIODIC_SNAPSHOT_DELAY)
-        
+
 
 async def main():
     # Run the advanced_example indefinitely. Reconnect automatically
