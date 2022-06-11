@@ -1,4 +1,5 @@
 asyncio-mqtt
 aiohttp
 aiofile
+aiopath
 dynaconf
