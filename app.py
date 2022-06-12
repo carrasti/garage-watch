@@ -10,6 +10,7 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -80,7 +81,7 @@ def upload():
     font = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf", 15)
     d = ImageDraw.Draw(im)
 
-    now = datetime.utcnow()
+    now = datetime.now(pytz.timezone("Europe/Brussels"))
     caption = now.strftime("%Y-%m-%d %H:%M")
     d.text(
         (math.floor(im.width) / 2, 20),

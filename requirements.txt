@@ -24,6 +24,8 @@ pillow==9.1.1
     # via -r requirements.in
 pycparser==2.20
     # via cffi
+pytz==2022.1
+    # via -r requirements.in
 six==1.15.0
     # via cryptography
 werkzeug==1.0.1
