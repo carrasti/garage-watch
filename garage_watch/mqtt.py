@@ -5,6 +5,7 @@ import asyncio
 import logging
 import json
 
+from garage_watch.snapshot import get_snapshot
 
 _logger = logging.getLogger("garagewatch.mqtt")
 
